@@ -5,9 +5,85 @@ param_int <- function(env, default) {
   if (nzchar(value)) as.integer(value) else as.integer(default)
 }
 
-benchmark_cpu_affinity <- function() {
-  value <- Sys.getenv("RCALLSRUST_BENCH_CPU", unset = "")
-  if (nzchar(value)) value else "not pinned"
+parse_cpu_list <- function(spec) {
+  parts <- unlist(strsplit(gsub("[[:space:]]", "", spec), ",", fixed = FALSE), use.names = FALSE)
+  cpus <- unlist(lapply(parts[nzchar(parts)], function(part) {
+    bounds <- strsplit(part, "-", fixed = TRUE)[[1L]]
+    if (length(bounds) == 2L) {
+      seq.int(as.integer(bounds[[1L]]), as.integer(bounds[[2L]]))
+    } else {
+      as.integer(part)
+    }
+  }), use.names = FALSE)
+  sort(unique(cpus[!is.na(cpus)]))
+}
+
+allowed_benchmark_cpus <- function() {
+  if (!nzchar(Sys.which("taskset"))) return(integer())
+  out <- tryCatch(
+    system2("taskset", c("-pc", Sys.getpid()), stdout = TRUE, stderr = TRUE),
+    error = function(e) character()
+  )
+  if (!length(out)) return(integer())
+  spec <- sub("^.*:[[:space:]]*", "", out[[length(out)]])
+  parse_cpu_list(spec)
+}
+
+auto_benchmark_cpu <- function(allowed) {
+  if (!length(allowed)) return(NA_integer_)
+
+  topo <- tryCatch(
+    system2("lscpu", "-p=CPU,CORE,MAXMHZ", stdout = TRUE, stderr = TRUE),
+    error = function(e) character()
+  )
+  topo <- grep("^[0-9]", topo, value = TRUE)
+  if (length(topo)) {
+    topo <- utils::read.csv(text = paste(topo, collapse = "\n"), header = FALSE)
+    names(topo) <- c("cpu", "core", "max_mhz")
+    topo$max_mhz <- suppressWarnings(as.numeric(topo$max_mhz))
+    topo <- topo[topo$cpu %in% allowed, , drop = FALSE]
+    if (nrow(topo)) {
+      if (any(is.finite(topo$max_mhz))) {
+        topo <- topo[topo$max_mhz == max(topo$max_mhz, na.rm = TRUE), , drop = FALSE]
+      }
+      topo <- topo[order(topo$core, topo$cpu), , drop = FALSE]
+      first_thread_per_core <- topo[!duplicated(topo$core), , drop = FALSE]
+      if (nrow(first_thread_per_core)) return(min(first_thread_per_core$cpu))
+    }
+  }
+
+  min(allowed)
+}
+
+set_benchmark_cpu_affinity <- function() {
+  request <- Sys.getenv("RCALLSRUST_BENCH_CPU", unset = "auto")
+  if (!nzchar(request)) request <- "auto"
+  if (tolower(request) %in% c("none", "off", "false", "no")) {
+    return("not pinned")
+  }
+  if (!nzchar(Sys.which("taskset"))) {
+    return("not pinned (taskset unavailable)")
+  }
+
+  allowed <- allowed_benchmark_cpus()
+  if (!length(allowed)) return("not pinned (affinity unknown)")
+
+  if (tolower(request) == "auto") {
+    cpu <- auto_benchmark_cpu(allowed)
+    label <- paste0("auto:", cpu)
+  } else {
+    cpu <- suppressWarnings(as.integer(request))
+    label <- as.character(cpu)
+  }
+  if (length(cpu) != 1L || is.na(cpu)) return("not pinned (invalid CPU request)")
+  if (!cpu %in% allowed) return(paste0("not pinned (CPU ", cpu, " outside allowed set ", paste(allowed, collapse = ","), ")"))
+
+  status <- tryCatch(
+    system2("taskset", c("-pc", cpu, Sys.getpid()), stdout = TRUE, stderr = TRUE),
+    error = function(e) character()
+  )
+  if (!length(status)) return(paste0("not pinned (failed to set CPU ", cpu, ")"))
+  label
 }
 
 check_benchmark_packages <- function(packages = benchmark_packages) {
@@ -34,7 +110,7 @@ read_rcallsrust_benchmark <- function(
   output_rds = benchmark_rds_path(output_csv)
 ) {
   results <- utils::read.csv(output_csv, stringsAsFactors = FALSE)
-  cpu_affinity <- if ("cpu_affinity" %in% names(results)) results$cpu_affinity[[1L]] else benchmark_cpu_affinity()
+  cpu_affinity <- if ("cpu_affinity" %in% names(results)) results$cpu_affinity[[1L]] else "not recorded"
   results$cpu_affinity <- NULL
   mark <- if (file.exists(output_rds)) readRDS(output_rds) else NULL
   count_row <- match("pure C count", results$binding)
@@ -61,6 +137,8 @@ run_rcallsrust_benchmark <- function(
   output_rds = benchmark_rds_path(output_csv)
 ) {
   check_benchmark_packages()
+  cpu_affinity <- set_benchmark_cpu_affinity()
+  message("Benchmark CPU affinity: ", cpu_affinity)
   input <- make_benchmark_input(n)
   x <- input$x
   needle <- input$needle
@@ -122,7 +200,7 @@ run_rcallsrust_benchmark <- function(
   if (!is.null(output_csv) && nzchar(output_csv)) {
     dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
     results_csv <- results
-    results_csv$cpu_affinity <- benchmark_cpu_affinity()
+    results_csv$cpu_affinity <- cpu_affinity
     utils::write.csv(results_csv, output_csv, row.names = FALSE)
   }
   if (!is.null(output_rds) && nzchar(output_rds)) {
@@ -138,7 +216,7 @@ run_rcallsrust_benchmark <- function(
       needle = as.integer(needle),
       expected_matches = as.numeric(result_sizes[["pure C count"]]),
       iterations = iterations,
-      cpu_affinity = benchmark_cpu_affinity()
+      cpu_affinity = cpu_affinity
     ),
     output_csv = output_csv,
     output_rds = output_rds

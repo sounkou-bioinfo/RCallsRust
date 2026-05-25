@@ -26,9 +26,10 @@ and allocation interference. Timing columns are reported in
 microseconds; `itr_per_second` is bench’s aggregate throughput and is
 not simply `1e6 / median_us`. The distribution plot uses a log10
 microsecond scale so long-tail outliers do not flatten the main timing
-bands. On heterogeneous or frequency-scaled CPUs, unpinned runs can show
-core-migration tails; on Linux, set `RCALLSRUST_BENCH_CPU=<cpu>` to pin
-the benchmark with `taskset`.
+bands. On Linux, benchmark runs pin themselves to one CPU by default
+(`RCALLSRUST_BENCH_CPU=auto`) to avoid core-migration tails on
+heterogeneous or frequency-scaled CPUs. Set `RCALLSRUST_BENCH_CPU=<cpu>`
+to choose a CPU, or `RCALLSRUST_BENCH_CPU=none` to disable pinning.
 
 ## Machine
 
@@ -45,21 +46,21 @@ the benchmark with `taskset`.
 ## Results
 
 | input_bytes | needle | expected_matches | iterations | cpu_affinity |
-|------------:|-------:|-----------------:|-----------:|-------------:|
-|       1e+06 |     65 |               10 |        500 |            0 |
+|------------:|-------:|-----------------:|-----------:|:-------------|
+|       1e+06 |     65 |               10 |        500 | auto:0       |
 
 | binding                       | input_bytes | iterations | result_size |   min_us |   p25_us | median_us |   p75_us |   p95_us |    max_us | itr_per_second | mem_alloc_bytes | gc_per_second |
 |:------------------------------|------------:|-----------:|------------:|---------:|---------:|----------:|---------:|---------:|----------:|---------------:|----------------:|--------------:|
-| pure C count                  |       1e+06 |        500 |          10 | 216.4610 | 218.8683 |  231.5645 | 419.0668 | 429.5990 |  449.4131 |       3422.080 |               0 |      0.000000 |
-| savvy count                   |       1e+06 |        500 |          10 | 268.6331 | 269.3455 |  271.8525 | 274.0244 | 277.5776 |  288.2330 |       3673.828 |               0 |      0.000000 |
-| extendr high-level count      |       1e+06 |        500 |          10 | 268.8779 | 273.9317 |  277.8005 | 338.5370 | 342.2083 |  383.2100 |       3358.517 |               0 |      0.000000 |
-| C .Call + Rust count          |       1e+06 |        500 |          10 | 273.6660 | 274.1060 |  280.4721 | 348.6926 | 365.1795 |  401.4010 |       3287.509 |               0 |      0.000000 |
-| extendr_ffi count             |       1e+06 |        500 |          10 | 269.7689 | 277.7879 |  321.1505 | 338.4415 | 341.2959 | 4332.8489 |       3007.240 |               0 |      0.000000 |
-| pure C data.frame             |       1e+06 |        500 |          10 | 426.2611 | 435.0110 |  442.3365 | 571.3510 | 643.1047 |  665.1041 |       2011.792 |               0 |      0.000000 |
-| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 431.1120 | 441.0743 |  443.5341 | 460.3973 | 471.0585 |  494.1100 |       2227.373 |               0 |      0.000000 |
-| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.5500 | 480.9421 |  482.6536 | 486.0712 | 494.2625 |  521.5349 |       2064.436 |               0 |      0.000000 |
-| savvy list + R data.frame     |       1e+06 |        500 |          10 | 481.7031 | 483.9698 |  485.3721 | 490.0148 | 499.9955 |  527.2730 |       2049.611 |               0 |      0.000000 |
-| extendr high-level data.frame |       1e+06 |        500 |          10 | 536.1299 | 540.6938 |  547.1780 | 556.9335 | 584.3325 | 2182.7739 |       1810.507 |               0 |      7.271114 |
+| extendr high-level count      |       1e+06 |        500 |          10 | 268.9541 | 271.0066 |  272.7641 | 275.9346 | 278.9222 |  284.9570 |       3655.779 |               0 |      0.000000 |
+| extendr_ffi count             |       1e+06 |        500 |          10 | 268.9301 | 271.1431 |  274.0180 | 277.6398 | 317.5747 |  340.8821 |       3596.239 |               0 |      0.000000 |
+| savvy count                   |       1e+06 |        500 |          10 | 268.6590 | 274.4132 |  275.8990 | 278.0447 | 282.1359 |  304.9689 |       3618.581 |               0 |      0.000000 |
+| C .Call + Rust count          |       1e+06 |        500 |          10 | 273.9950 | 280.6784 |  329.6240 | 344.7632 | 358.0236 |  413.8250 |       3142.662 |               0 |      0.000000 |
+| pure C count                  |       1e+06 |        500 |          10 | 216.7390 | 231.1628 |  370.9205 | 419.3695 | 626.0215 |  658.9760 |       2739.439 |               0 |      0.000000 |
+| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 431.1650 | 431.6930 |  433.4804 | 440.5422 | 445.4333 |  533.2980 |       2293.355 |               0 |      0.000000 |
+| pure C data.frame             |       1e+06 |        500 |          10 | 435.3640 | 436.8063 |  442.6760 | 557.7519 | 646.9506 | 2725.5799 |       2008.175 |               0 |      4.024398 |
+| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.5041 | 481.1858 |  484.1066 | 491.7886 | 508.6450 |  554.8050 |       2049.805 |               0 |      0.000000 |
+| savvy list + R data.frame     |       1e+06 |        500 |          10 | 481.6600 | 483.0362 |  484.9345 | 488.0437 | 498.5399 |  540.3770 |       2054.311 |               0 |      0.000000 |
+| extendr high-level data.frame |       1e+06 |        500 |          10 | 535.4981 | 539.7196 |  543.9636 | 551.4898 | 564.8722 | 2178.8831 |       1829.003 |               0 |      7.345395 |
 
 ## Plot
 

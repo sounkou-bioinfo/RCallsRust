@@ -1,10 +1,5 @@
 PACKAGES = RCallsC RCallsRustC RCallsRustExtendrFfi RCallsRustExtendr RCallsRustSavvy
 PACKAGE_DIRS = $(addprefix r/,$(PACKAGES))
-ifdef RCALLSRUST_BENCH_CPU
-BENCH_RUNNER = taskset -c $(RCALLSRUST_BENCH_CPU)
-else
-BENCH_RUNNER =
-endif
 
 .PHONY: help deps install test bench readme bench-report report build check clean
 
@@ -14,7 +9,7 @@ help:
 	@echo "  make install      Install all R packages"
 	@echo "  make test         Run tinytest for all packages"
 	@echo "  make bench        Run bench::mark benchmark script"
-	@echo "                   Set RCALLSRUST_BENCH_CPU=<cpu> to pin with taskset on Linux"
+	@echo "                   Pins to one Linux CPU by default; set RCALLSRUST_BENCH_CPU=none to disable"
 	@echo "  make readme       Render README.md from README.Rmd"
 	@echo "  make bench-report Render benchmarks/benchmark.md from benchmarks/benchmark.Rmd"
 	@echo "  make report       Render README.md and benchmark report"
@@ -35,7 +30,7 @@ test-%:
 	Rscript -e 'tinytest::test_package("$*")'
 
 bench: install
-	$(BENCH_RUNNER) Rscript benchmarks/benchmark.R
+	Rscript benchmarks/benchmark.R
 
 readme: install
 	Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE)'

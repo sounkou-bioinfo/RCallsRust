@@ -47,6 +47,7 @@ jobs:
       - name: Run benchmark and render report
         env:
           RCALLSRUST_BENCH_ITERS: 200
+          RCALLSRUST_BENCH_CPU: auto
         run: make report
       - uses: actions/upload-artifact@v4
         with:

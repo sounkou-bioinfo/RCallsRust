@@ -32,9 +32,11 @@ scheduler/cache tails. Each case is measured in a separate `bench::mark()` run
 to reduce cross-case cache and allocation interference. Timing columns are
 reported in microseconds; `itr_per_second` is bench's aggregate throughput and is not simply
 `1e6 / median_us`. The distribution plot uses a log10 microsecond scale so
-long-tail outliers do not flatten the main timing bands. On heterogeneous or
-frequency-scaled CPUs, unpinned runs can show core-migration tails; on Linux,
-set `RCALLSRUST_BENCH_CPU=<cpu>` to pin the benchmark with `taskset`.
+long-tail outliers do not flatten the main timing bands. On Linux, benchmark
+runs pin themselves to one CPU by default (`RCALLSRUST_BENCH_CPU=auto`) to avoid
+core-migration tails on heterogeneous or frequency-scaled CPUs. Set
+`RCALLSRUST_BENCH_CPU=<cpu>` to choose a CPU, or `RCALLSRUST_BENCH_CPU=none` to
+disable pinning.
 
 ## Machine
 
