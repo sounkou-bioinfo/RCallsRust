@@ -19,6 +19,9 @@ all: $(SHLIB) clean_intermediate
 
 $(SHLIB): $(STATLIB)
 
+init.o: init.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -O3 -ftree-vectorize -c $< -o $@
+
 $(STATLIB):
 	# When the GNU toolchain is used (i.e. on CRAN), -lgcc_eh is specified for
 	# building proc-macro2, but Rtools doesn't contain libgcc_eh. This isn't used

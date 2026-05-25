@@ -4,6 +4,9 @@ PKG_LIBS = -L$(LIBDIR) -lrcallsrustextendr -L$(R_HOME)/lib -lR -lpthread -lm -ld
 
 $(SHLIB): $(STATLIB)
 
+entrypoint.o: entrypoint.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -O3 -ftree-vectorize -c $< -o $@
+
 $(STATLIB):
 	mkdir -p .cargo
 	export CARGO_HOME=$(CURDIR)/.cargo; \

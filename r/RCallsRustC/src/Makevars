@@ -1,8 +1,12 @@
+# Keep the C .Call wrapper optimized consistently with the pure-C baseline.
 LIBDIR = rust/target/release
 STATLIB = $(LIBDIR)/librcrustc.a
 PKG_LIBS = -L$(LIBDIR) -lrcrustc -lpthread -lm -ldl
 
 $(SHLIB): $(STATLIB)
+
+wrapper.o: wrapper.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -O3 -ftree-vectorize -c $< -o $@
 
 $(STATLIB):
 	mkdir -p .cargo

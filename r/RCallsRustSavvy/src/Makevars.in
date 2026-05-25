@@ -17,6 +17,9 @@ all: $(SHLIB) clean_intermediate
 
 $(SHLIB): $(STATLIB)
 
+init.o: init.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -O3 -ftree-vectorize -c $< -o $@
+
 $(STATLIB):
 	# In some environments, ~/.cargo/bin might not be included in PATH, so we need
 	# to set it here to ensure cargo can be invoked. It is appended to PATH and

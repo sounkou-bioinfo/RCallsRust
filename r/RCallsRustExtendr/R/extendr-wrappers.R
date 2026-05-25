@@ -5,8 +5,8 @@
 #' @useDynLib RCallsRustExtendr, .registration = TRUE
 NULL
 
-count_byte_extendr <- function(x, needle) .Call(wrap__count_byte_extendr, x, needle)
+count_byte_extendr <- function(x, needle) .Call("wrap__count_byte_extendr", x, needle, PACKAGE = "RCallsRustExtendr")
 
-find_byte_extendr <- function(x, needle) .Call(wrap__find_byte_extendr, x, needle)
+find_byte_extendr <- function(x, needle) .Call("wrap__find_byte_extendr", x, needle, PACKAGE = "RCallsRustExtendr")
 
 # nolint end

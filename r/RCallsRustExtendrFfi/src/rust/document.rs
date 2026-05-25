@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ";
     let footer = "# nolint end\n";
     let wrappers = rcallsrustextendrffi::get_rcallsrustextendrffi_metadata()
-        .make_r_wrappers(true, "RCallsRustExtendrFfi")
+        .make_r_wrappers(false, "RCallsRustExtendrFfi")
         .map_err(|e| format!("failed to generate wrappers: {e}"))?;
     std::fs::write(wrapper_path, format!("{header}{wrappers}{footer}"))
         .map_err(|e| format!("failed to write {wrapper_path}: {e}"))?;

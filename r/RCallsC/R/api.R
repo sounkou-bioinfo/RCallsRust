@@ -21,7 +21,7 @@ check_raw <- function(x) {
 #' @return Number of occurrences as a numeric scalar.
 #' @export
 count_byte <- function(x, needle = as.raw(0x41)) {
-  .Call(RCallsC_count_byte, check_raw(x), normalize_needle(needle))
+  .Call("RCallsC_count_byte", check_raw(x), normalize_needle(needle), PACKAGE = "RCallsC")
 }
 
 #' Find byte occurrences
@@ -30,5 +30,5 @@ count_byte <- function(x, needle = as.raw(0x41)) {
 #' @return A data frame with zero-based `position` and integer `byte` columns.
 #' @export
 find_byte <- function(x, needle = as.raw(0x41)) {
-  .Call(RCallsC_find_byte, check_raw(x), normalize_needle(needle))
+  .Call("RCallsC_find_byte", check_raw(x), normalize_needle(needle), PACKAGE = "RCallsC")
 }

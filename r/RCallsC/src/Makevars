@@ -1,0 +1,7 @@
+# This benchmark intentionally compares optimized native kernels. R's default
+# package CFLAGS commonly include -O2; this package-local rule appends -O3 at
+# the end of the compile command so GCC's final optimization level is O3.
+all: $(SHLIB)
+
+c_impl.o: c_impl.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -O3 -ftree-vectorize -c $< -o $@

@@ -61,7 +61,9 @@ make check     # run R CMD check for all packages
 
 The benchmark uses the R `bench` package, a deterministic 1 MB raw
 vector by default, and reports both scalar count and small-data-frame
-return timings. The quantiles are included because these sub-millisecond
+return timings. The C translation units are compiled with
+`-O3 -ftree-vectorize`, and R wrappers use explicit `PACKAGE = "..."`
+native lookups. The quantiles are included because these sub-millisecond
 scans can have visible scheduler/cache tails. Each case is measured in a
 separate `bench::mark()` run to reduce cross-case cache and allocation
 interference. Timing columns are reported in microseconds;
@@ -79,16 +81,16 @@ to choose a CPU, or `RCALLSRUST_BENCH_CPU=none` to disable pinning.
 
 | binding                       | input_bytes | iterations | result_size |   min_us |   p25_us | median_us |   p75_us |   p95_us |    max_us | itr_per_second | mem_alloc_bytes | gc_per_second |
 |:------------------------------|------------:|-----------:|------------:|---------:|---------:|----------:|---------:|---------:|----------:|---------------:|----------------:|--------------:|
-| extendr high-level count      |       1e+06 |        500 |          10 | 268.9541 | 271.0066 |  272.7641 | 275.9346 | 278.9222 |  284.9570 |       3655.779 |               0 |      0.000000 |
-| extendr_ffi count             |       1e+06 |        500 |          10 | 268.9301 | 271.1431 |  274.0180 | 277.6398 | 317.5747 |  340.8821 |       3596.239 |               0 |      0.000000 |
-| savvy count                   |       1e+06 |        500 |          10 | 268.6590 | 274.4132 |  275.8990 | 278.0447 | 282.1359 |  304.9689 |       3618.581 |               0 |      0.000000 |
-| C .Call + Rust count          |       1e+06 |        500 |          10 | 273.9950 | 280.6784 |  329.6240 | 344.7632 | 358.0236 |  413.8250 |       3142.662 |               0 |      0.000000 |
-| pure C count                  |       1e+06 |        500 |          10 | 216.7390 | 231.1628 |  370.9205 | 419.3695 | 626.0215 |  658.9760 |       2739.439 |               0 |      0.000000 |
-| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 431.1650 | 431.6930 |  433.4804 | 440.5422 | 445.4333 |  533.2980 |       2293.355 |               0 |      0.000000 |
-| pure C data.frame             |       1e+06 |        500 |          10 | 435.3640 | 436.8063 |  442.6760 | 557.7519 | 646.9506 | 2725.5799 |       2008.175 |               0 |      4.024398 |
-| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.5041 | 481.1858 |  484.1066 | 491.7886 | 508.6450 |  554.8050 |       2049.805 |               0 |      0.000000 |
-| savvy list + R data.frame     |       1e+06 |        500 |          10 | 481.6600 | 483.0362 |  484.9345 | 488.0437 | 498.5399 |  540.3770 |       2054.311 |               0 |      0.000000 |
-| extendr high-level data.frame |       1e+06 |        500 |          10 | 535.4981 | 539.7196 |  543.9636 | 551.4898 | 564.8722 | 2178.8831 |       1829.003 |               0 |      7.345395 |
+| pure C count                  |       1e+06 |        500 |          10 | 112.8591 | 121.7765 |  153.0970 | 153.6648 | 160.4780 |  162.7341 |       7006.881 |               0 |      0.000000 |
+| extendr_ffi count             |       1e+06 |        500 |          10 | 269.1790 | 271.3408 |  272.5621 | 275.5001 | 279.9320 |  308.7170 |       3654.424 |               0 |      0.000000 |
+| savvy count                   |       1e+06 |        500 |          10 | 268.9509 | 271.9640 |  272.6684 | 276.3022 | 280.7519 |  321.3820 |       3646.167 |               0 |      0.000000 |
+| extendr high-level count      |       1e+06 |        500 |          10 | 269.3119 | 272.6929 |  275.6294 | 277.8616 | 283.2437 |  327.8069 |       3623.637 |               0 |      0.000000 |
+| pure C data.frame             |       1e+06 |        500 |          10 | 326.8120 | 330.8023 |  331.6280 | 333.8901 | 341.9978 | 2640.3400 |       2994.247 |               0 |      6.000495 |
+| C .Call + Rust count          |       1e+06 |        500 |          10 | 274.1070 | 281.2407 |  337.8839 | 347.9552 | 360.8749 |  389.8530 |       3109.289 |               0 |      0.000000 |
+| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 431.2620 | 438.9913 |  442.8221 | 460.7965 | 470.8609 |  498.2511 |       2229.847 |               0 |      0.000000 |
+| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.5442 | 481.9244 |  483.6406 | 487.6528 | 502.8841 |  521.5640 |       2056.804 |               0 |      0.000000 |
+| savvy list + R data.frame     |       1e+06 |        500 |          10 | 482.0980 | 485.0553 |  485.9956 | 488.3560 | 500.2218 |  543.1140 |       2048.217 |               0 |      0.000000 |
+| extendr high-level data.frame |       1e+06 |        500 |          10 | 536.7920 | 541.9107 |  547.8245 | 556.0437 | 575.2578 | 2196.9929 |       1814.941 |               0 |      7.288920 |
 
 ![](README_files/figure-gfm/benchmark-plot-1.png)<!-- -->
 

@@ -39,12 +39,12 @@ NULL
 
 
 `rcallsrust_count_byte_savvy` <- function(`x`, `needle`) {
-  .Call(savvy_rcallsrust_count_byte_savvy__impl, `x`, `needle`)
+  .Call("savvy_rcallsrust_count_byte_savvy__impl", `x`, `needle`, PACKAGE = "RCallsRustSavvy")
 }
 
 
 `rcallsrust_find_byte_savvy` <- function(`x`, `needle`) {
-  .Call(savvy_rcallsrust_find_byte_savvy__impl, `x`, `needle`)
+  .Call("savvy_rcallsrust_find_byte_savvy__impl", `x`, `needle`, PACKAGE = "RCallsRustSavvy")
 }
 
 

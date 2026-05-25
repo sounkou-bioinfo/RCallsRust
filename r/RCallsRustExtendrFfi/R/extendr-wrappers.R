@@ -5,8 +5,8 @@
 #' @useDynLib RCallsRustExtendrFfi, .registration = TRUE
 NULL
 
-count_byte_ffi <- function(x, needle) .Call(wrap__count_byte_ffi, x, needle)
+count_byte_ffi <- function(x, needle) .Call("wrap__count_byte_ffi", x, needle, PACKAGE = "RCallsRustExtendrFfi")
 
-find_byte_ffi <- function(x, needle) .Call(wrap__find_byte_ffi, x, needle)
+find_byte_ffi <- function(x, needle) .Call("wrap__find_byte_ffi", x, needle, PACKAGE = "RCallsRustExtendrFfi")
 
 # nolint end
