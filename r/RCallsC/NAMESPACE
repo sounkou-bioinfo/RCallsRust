@@ -1,0 +1,3 @@
+useDynLib(RCallsC, .registration = TRUE)
+export(count_byte)
+export(find_byte)

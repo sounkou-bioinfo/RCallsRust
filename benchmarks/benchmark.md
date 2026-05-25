@@ -4,9 +4,10 @@ RCallsRust benchmark
 - [Machine](#machine)
 - [Results](#results)
 
-This benchmark compares four small R packages that all scan the same raw
-vector from Rust and expose the same R API:
+This benchmark compares five small R packages that all scan the same raw
+vector and expose the same R API:
 
+- `RCallsC`: pure C `.Call` implementation.
 - `RCallsRustC`: C `.Call` wrapper plus a Rust static library.
 - `RCallsRustExtendrFfi`: `extendr` registration with direct
   `extendr_ffi` use.
@@ -15,7 +16,9 @@ vector from Rust and expose the same R API:
 - `RCallsRustSavvy`: `savvy` wrappers, returning a named list from Rust
   and converting to a data frame in R.
 
-The benchmark uses the R `bench` package.
+The benchmark uses the R `bench` package. All `find_byte()`
+implementations use the same two-pass algorithm: count matches, allocate
+output, then fill positions.
 
 ## Machine
 
@@ -33,18 +36,20 @@ The benchmark uses the R `bench` package.
 
 | input_bytes | needle | expected_matches | iterations |
 |------------:|-------:|-----------------:|-----------:|
-|       1e+06 |     65 |               10 |        100 |
+|       1e+06 |     65 |               10 |        500 |
 
 | binding                       | input_bytes | iterations | result_size | min_seconds | median_seconds | itr_per_second | mem_alloc_bytes | gc_per_second |
 |:------------------------------|------------:|-----------:|------------:|------------:|---------------:|---------------:|----------------:|--------------:|
-| savvy list + R data.frame     |       1e+06 |        100 |          10 |    0.000230 |       0.000231 |       4324.819 |               0 |       0.00000 |
-| extendr_ffi data.frame        |       1e+06 |        100 |          10 |    0.000240 |       0.000245 |       4079.300 |               0 |       0.00000 |
-| extendr high-level data.frame |       1e+06 |        100 |          10 |    0.000291 |       0.000300 |       2814.437 |               0 |      28.42865 |
-| extendr high-level count      |       1e+06 |        100 |          10 |    0.000331 |       0.000335 |       2962.011 |               0 |       0.00000 |
-| savvy count                   |       1e+06 |        100 |          10 |    0.000330 |       0.000337 |       2965.983 |               0 |       0.00000 |
-| extendr_ffi count             |       1e+06 |        100 |          10 |    0.000349 |       0.000352 |       2834.373 |               0 |       0.00000 |
-| C .Call + Rust count          |       1e+06 |        100 |          10 |    0.000355 |       0.000356 |       2805.356 |               0 |       0.00000 |
-| C .Call + Rust data.frame     |       1e+06 |        100 |          10 |    0.000481 |       0.000505 |       1996.106 |               0 |       0.00000 |
+| pure C count                  |       1e+06 |        500 |          10 |    0.000221 |       0.000234 |       3694.587 |               0 |      0.000000 |
+| extendr high-level count      |       1e+06 |        500 |          10 |    0.000269 |       0.000275 |       3594.896 |               0 |      0.000000 |
+| C .Call + Rust count          |       1e+06 |        500 |          10 |    0.000279 |       0.000281 |       3523.554 |               0 |      0.000000 |
+| extendr_ffi count             |       1e+06 |        500 |          10 |    0.000274 |       0.000289 |       3453.247 |               0 |      6.920335 |
+| savvy count                   |       1e+06 |        500 |          10 |    0.000269 |       0.000324 |       3199.951 |               0 |      0.000000 |
+| C .Call + Rust data.frame     |       1e+06 |        500 |          10 |    0.000431 |       0.000433 |       2294.671 |               0 |      0.000000 |
+| savvy list + R data.frame     |       1e+06 |        500 |          10 |    0.000481 |       0.000489 |       2033.336 |               0 |      4.074822 |
+| extendr_ffi data.frame        |       1e+06 |        500 |          10 |    0.000489 |       0.000493 |       2026.243 |               0 |      0.000000 |
+| pure C data.frame             |       1e+06 |        500 |          10 |    0.000426 |       0.000550 |       1724.241 |               0 |      0.000000 |
+| extendr high-level data.frame |       1e+06 |        500 |          10 |    0.000535 |       0.000554 |       1805.448 |               0 |     18.236851 |
 
 The CSV artifact is written to
 /root/RCallsRust/benchmark-results/r-calls-rust.csv.

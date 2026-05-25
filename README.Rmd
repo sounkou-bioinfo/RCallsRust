@@ -15,7 +15,7 @@ source("benchmarks/benchmark-core.R")
 
 Small reproducible examples for comparing the overhead of R calling Rust through
 several package styles. The examples deliberately do **not** depend on `sassy` or
-any domain-specific crate.
+any domain-specific crate. A pure C package is included as a baseline.
 
 Each package exposes the same two functions:
 
@@ -28,6 +28,7 @@ input access, and return-object construction overhead.
 
 ## Packages
 
+- [`r/RCallsC`](r/RCallsC): pure C `.Call` implementation using R's native C API.
 - [`r/RCallsRustC`](r/RCallsRustC): old-school `.Call` C wrapper plus a Rust
   `staticlib`, following the structure of
   [`r-rust/hellorust`](https://github.com/r-rust/hellorust).
@@ -42,6 +43,11 @@ input access, and return-object construction overhead.
   wrappers are generated with `savvy::savvy_update()`. It returns a named list
   from Rust and constructs the final `data.frame` in R, which matches savvy's
   documented recommendation for data frames.
+
+All `find_byte()` implementations use the same two-pass algorithm: first count
+matches to determine output size, then scan again to fill positions. This keeps
+the Rust-backed variants algorithmically aligned with the C/R API variants,
+which need the output size before allocating R vectors.
 
 ## Make targets
 
@@ -62,9 +68,11 @@ The benchmark uses the R `bench` package, a deterministic 1 MB raw vector by
 default, and reports both scalar count and small-data-frame return timings.
 
 ```{r benchmark, echo=FALSE}
-bench <- run_rcallsrust_benchmark(
-  n = params$input_bytes,
-  iterations = params$iterations,
+bench_iterations <- param_int("RCALLSRUST_BENCH_ITERS", params$iterations)
+bench_input_bytes <- param_int("RCALLSRUST_BENCH_N", params$input_bytes)
+bench <- get_rcallsrust_benchmark(
+  n = bench_input_bytes,
+  iterations = bench_iterations,
   output_csv = params$output_csv
 )
 knitr::kable(bench$input)

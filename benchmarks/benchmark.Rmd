@@ -15,16 +15,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 source("benchmark-core.R")
 ```
 
-This benchmark compares four small R packages that all scan the same raw vector
-from Rust and expose the same R API:
+This benchmark compares five small R packages that all scan the same raw vector
+and expose the same R API:
 
+- `RCallsC`: pure C `.Call` implementation.
 - `RCallsRustC`: C `.Call` wrapper plus a Rust static library.
 - `RCallsRustExtendrFfi`: `extendr` registration with direct `extendr_ffi` use.
 - `RCallsRustExtendr`: high-level `extendr` wrapper and `data_frame!` output.
 - `RCallsRustSavvy`: `savvy` wrappers, returning a named list from Rust and
   converting to a data frame in R.
 
-The benchmark uses the R `bench` package.
+The benchmark uses the R `bench` package. All `find_byte()` implementations use
+the same two-pass algorithm: count matches, allocate output, then fill positions.
 
 ## Machine
 
@@ -51,9 +53,11 @@ repo_root <- normalizePath("..", mustWork = TRUE)
 output_csv <- params$output_csv
 if (!grepl("^/|^[A-Za-z]:[/\\\\]", output_csv)) output_csv <- file.path(repo_root, output_csv)
 
-bench <- run_rcallsrust_benchmark(
-  n = params$input_bytes,
-  iterations = params$iterations,
+bench_iterations <- param_int("RCALLSRUST_BENCH_ITERS", params$iterations)
+bench_input_bytes <- param_int("RCALLSRUST_BENCH_N", params$input_bytes)
+bench <- get_rcallsrust_benchmark(
+  n = bench_input_bytes,
+  iterations = bench_iterations,
   output_csv = output_csv
 )
 knitr::kable(bench$input)

@@ -43,6 +43,20 @@ fn r_char(bytes: &'static [u8]) -> extendr_ffi::SEXP {
     }
 }
 
+fn count_positions(bytes: &[u8], needle: u8) -> usize {
+    bytes.iter().filter(|&&b| b == needle).count()
+}
+
+fn fill_positions(bytes: &[u8], needle: u8, positions: &mut [f64]) {
+    let mut j = 0usize;
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == needle {
+            positions[j] = i as f64;
+            j += 1;
+        }
+    }
+}
+
 fn data_frame_ffi(positions: &[f64], needle: u8) -> Robj {
     unsafe {
         let n = positions.len();
@@ -80,7 +94,7 @@ fn data_frame_ffi(positions: &[f64], needle: u8) -> Robj {
 fn count_byte_ffi(x: Robj, needle: i32) -> extendr_api::Result<Robj> {
     let bytes = raw_slice(&x)?;
     let needle = check_needle(needle)?;
-    let count = bytes.iter().filter(|&&b| b == needle).count() as f64;
+    let count = count_positions(bytes, needle) as f64;
     Ok(count.into_robj())
 }
 
@@ -88,11 +102,9 @@ fn count_byte_ffi(x: Robj, needle: i32) -> extendr_api::Result<Robj> {
 fn find_byte_ffi(x: Robj, needle: i32) -> extendr_api::Result<Robj> {
     let bytes = raw_slice(&x)?;
     let needle = check_needle(needle)?;
-    let positions: Vec<f64> = bytes
-        .iter()
-        .enumerate()
-        .filter_map(|(i, &b)| if b == needle { Some(i as f64) } else { None })
-        .collect();
+    let count = count_positions(bytes, needle);
+    let mut positions = vec![0.0; count];
+    fill_positions(bytes, needle, &mut positions);
     Ok(data_frame_ffi(&positions, needle))
 }
 

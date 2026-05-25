@@ -1,4 +1,4 @@
-PACKAGES = RCallsRustC RCallsRustExtendrFfi RCallsRustExtendr RCallsRustSavvy
+PACKAGES = RCallsC RCallsRustC RCallsRustExtendrFfi RCallsRustExtendr RCallsRustSavvy
 PACKAGE_DIRS = $(addprefix r/,$(PACKAGES))
 
 .PHONY: help deps install test bench readme bench-report report build check clean
@@ -37,7 +37,9 @@ readme: install
 bench-report: install
 	Rscript -e 'rmarkdown::render("benchmarks/benchmark.Rmd", output_format = "github_document", output_file = "benchmark.md", quiet = TRUE)'
 
-report: readme bench-report
+report: bench
+	RCALLSRUST_BENCH_USE_CSV=true Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE)'
+	RCALLSRUST_BENCH_USE_CSV=true Rscript -e 'rmarkdown::render("benchmarks/benchmark.Rmd", output_format = "github_document", output_file = "benchmark.md", quiet = TRUE)'
 
 build: $(PACKAGES:%=build-%)
 
