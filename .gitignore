@@ -1,0 +1,14 @@
+*.Rcheck/
+*.tar.gz
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+**/src/*.o
+**/src/*.so
+**/src/*.dll
+**/src/*.dylib
+**/src/rust/target/
+**/src/.cargo/
+benchmark-results/

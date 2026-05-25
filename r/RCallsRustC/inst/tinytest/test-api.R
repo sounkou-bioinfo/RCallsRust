@@ -1,0 +1,7 @@
+x <- as.raw(c(0x41, 0x42, 0x41, 0x00, 0x41))
+expect_equal(count_byte(x, as.raw(0x41)), 3)
+out <- find_byte(x, as.raw(0x41))
+expect_true(is.data.frame(out))
+expect_equal(out$position, c(0, 2, 4))
+expect_equal(out$byte, c(65L, 65L, 65L))
+expect_error(count_byte(1:3, as.raw(0x41)))

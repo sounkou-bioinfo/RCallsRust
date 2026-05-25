@@ -1,0 +1,17 @@
+LIBDIR = rust/target/release
+STATLIB = $(LIBDIR)/librcallsrustextendr.a
+PKG_LIBS = -L$(LIBDIR) -lrcallsrustextendr -L$(R_HOME)/lib -lR -lpthread -lm -ldl
+
+$(SHLIB): $(STATLIB)
+
+$(STATLIB):
+	mkdir -p .cargo
+	export CARGO_HOME=$(CURDIR)/.cargo; \
+	export PATH="$(PATH):$(HOME)/.cargo/bin"; \
+	RUSTFLAGS="$(RUSTFLAGS) --print=native-static-libs" cargo build --release --manifest-path=rust/Cargo.toml --target-dir=rust/target
+	export CARGO_HOME=$(CURDIR)/.cargo; \
+	export PATH="$(PATH):$(HOME)/.cargo/bin"; \
+	cargo run --bin document --manifest-path=rust/Cargo.toml --target-dir=rust/target
+
+clean:
+	rm -Rf $(SHLIB) $(OBJECTS) $(STATLIB) rust/target .cargo

@@ -1,0 +1,6 @@
+^src/rust/target$
+^src/\.cargo$
+
+^src/rust/\.cargo$
+^src/Makevars$
+^src/Makevars\.win$

@@ -1,0 +1,10 @@
+Package: RCallsRustSavvy
+Title: 'savvy' Wrapper Calling Rust
+Version: 0.0.0.9000
+Authors@R: person(given = "Sounkou Mahamane", family = "Toure", email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Small reproducible package that calls Rust through the 'savvy' interface.
+License: MIT + file LICENSE
+Encoding: UTF-8
+SystemRequirements: Cargo (Rust's package manager), rustc
+Depends: R (>= 4.2)
+Suggests: tinytest

@@ -1,0 +1,3 @@
+useDynLib(RCallsRustSavvy, .registration = TRUE)
+export(count_byte)
+export(find_byte)

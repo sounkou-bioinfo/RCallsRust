@@ -1,0 +1,14 @@
+LIBDIR = rust/target/release
+STATLIB = $(LIBDIR)/librcrustc.a
+PKG_LIBS = -L$(LIBDIR) -lrcrustc -lpthread -lm -ldl
+
+$(SHLIB): $(STATLIB)
+
+$(STATLIB):
+	mkdir -p .cargo
+	export CARGO_HOME=$(CURDIR)/.cargo; \
+	export PATH="$(PATH):$(HOME)/.cargo/bin"; \
+	cargo build --release --manifest-path=rust/Cargo.toml --target-dir=rust/target
+
+clean:
+	rm -Rf $(SHLIB) $(OBJECTS) $(STATLIB) rust/target .cargo
