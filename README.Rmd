@@ -54,7 +54,7 @@ which need the output size before allocating R vectors.
 From the repository root:
 
 ```sh
-make deps      # install tinytest, bench, and rmarkdown
+make deps      # install tinytest, bench, ggplot2, and rmarkdown
 make install   # install all packages
 make test      # run tinytest for all packages
 make bench     # run bench::mark benchmark script
@@ -82,7 +82,12 @@ knitr::kable(bench$input)
 knitr::kable(bench$results, digits = 6)
 ```
 
-The CSV artifact is written to `r bench$output_csv`.
+```{r benchmark-plot, echo=FALSE, fig.width=9, fig.height=6}
+plot_rcallsrust_benchmark(bench$mark, type = "boxplot")
+```
+
+The CSV artifact is written to `r bench$output_csv`; the raw `bench::mark()`
+object used for the plot is written to `r bench$output_rds`.
 
 A standalone benchmark report is also available at
 [`benchmarks/benchmark.md`](benchmarks/benchmark.md), generated from

@@ -67,4 +67,11 @@ knitr::kable(bench$input)
 knitr::kable(bench$results, digits = 6)
 ```
 
-The CSV artifact is written to `r bench$output_csv`.
+## Plot
+
+```{r benchmark-plot, echo=FALSE, fig.width=9, fig.height=6}
+plot_rcallsrust_benchmark(bench$mark, type = "boxplot")
+```
+
+The CSV artifact is written to `r bench$output_csv`; the raw `bench::mark()`
+object used for the plot is written to `r bench$output_rds`.

@@ -16,7 +16,7 @@ help:
 	@echo "  make clean        Remove build artifacts"
 
 deps:
-	Rscript -e 'install.packages(c("tinytest", "bench", "rmarkdown", "knitr"))'
+	Rscript -e 'install.packages(c("tinytest", "bench", "ggplot2", "rmarkdown", "knitr"))'
 
 install: $(PACKAGES:%=install-%)
 

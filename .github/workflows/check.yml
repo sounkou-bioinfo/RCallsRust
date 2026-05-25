@@ -26,7 +26,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install R dependencies
         shell: Rscript {0}
-        run: install.packages(c("tinytest", "bench", "rmarkdown", "knitr"))
+        run: install.packages(c("tinytest", "bench", "ggplot2", "rmarkdown", "knitr"))
       - name: Check
         run: make check-${{ matrix.package }}
 
@@ -43,7 +43,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install R dependencies
         shell: Rscript {0}
-        run: install.packages(c("tinytest", "bench", "rmarkdown", "knitr"))
+        run: install.packages(c("tinytest", "bench", "ggplot2", "rmarkdown", "knitr"))
       - name: Run benchmark and render report
         env:
           RCALLSRUST_BENCH_ITERS: 200
@@ -53,4 +53,6 @@ jobs:
           name: benchmark-results
           path: |
             benchmark-results/r-calls-rust.csv
+            benchmark-results/r-calls-rust.rds
             benchmarks/benchmark.md
+            benchmarks/benchmark_files/**
