@@ -1,0 +1,63 @@
+---
+title: "RCallsRust benchmark"
+output:
+  github_document:
+    toc: true
+    toc_depth: 2
+params:
+  iterations: 100
+  input_bytes: 1000000
+  output_csv: "benchmark-results/r-calls-rust.csv"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+source("benchmark-core.R")
+```
+
+This benchmark compares four small R packages that all scan the same raw vector
+from Rust and expose the same R API:
+
+- `RCallsRustC`: C `.Call` wrapper plus a Rust static library.
+- `RCallsRustExtendrFfi`: `extendr` registration with direct `extendr_ffi` use.
+- `RCallsRustExtendr`: high-level `extendr` wrapper and `data_frame!` output.
+- `RCallsRustSavvy`: `savvy` wrappers, returning a named list from Rust and
+  converting to a data frame in R.
+
+The benchmark uses the R `bench` package.
+
+## Machine
+
+```{r machine, echo=FALSE}
+machine <- data.frame(
+  field = c("system", "release", "machine", "R", "platform", "cargo", "rustc"),
+  value = c(
+    unname(Sys.info()[["sysname"]]),
+    unname(Sys.info()[["release"]]),
+    unname(Sys.info()[["machine"]]),
+    R.version.string,
+    R.version$platform,
+    paste(system2("cargo", "--version", stdout = TRUE), collapse = "\n"),
+    paste(system2("rustc", "--version", stdout = TRUE), collapse = "\n")
+  )
+)
+knitr::kable(machine)
+```
+
+## Results
+
+```{r benchmark, echo=FALSE}
+repo_root <- normalizePath("..", mustWork = TRUE)
+output_csv <- params$output_csv
+if (!grepl("^/|^[A-Za-z]:[/\\\\]", output_csv)) output_csv <- file.path(repo_root, output_csv)
+
+bench <- run_rcallsrust_benchmark(
+  n = params$input_bytes,
+  iterations = params$iterations,
+  output_csv = output_csv
+)
+knitr::kable(bench$input)
+knitr::kable(bench$results, digits = 6)
+```
+
+The CSV artifact is written to `r bench$output_csv`.

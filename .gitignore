@@ -12,3 +12,5 @@
 **/src/rust/target/
 **/src/.cargo/
 benchmark-results/
+README.html
+benchmarks/*.html

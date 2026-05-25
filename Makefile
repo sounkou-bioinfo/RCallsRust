@@ -1,19 +1,22 @@
 PACKAGES = RCallsRustC RCallsRustExtendrFfi RCallsRustExtendr RCallsRustSavvy
 PACKAGE_DIRS = $(addprefix r/,$(PACKAGES))
 
-.PHONY: help deps install test bench build check clean
+.PHONY: help deps install test bench readme bench-report report build check clean
 
 help:
 	@echo "Targets:"
-	@echo "  make deps      Install R dependencies used by tests/benchmarks"
-	@echo "  make install   Install all R packages"
-	@echo "  make test      Run tinytest for all packages"
-	@echo "  make bench     Run bench::mark benchmark"
-	@echo "  make check     Run R CMD check for all packages"
-	@echo "  make clean     Remove build artifacts"
+	@echo "  make deps         Install R dependencies used by tests/benchmarks/reports"
+	@echo "  make install      Install all R packages"
+	@echo "  make test         Run tinytest for all packages"
+	@echo "  make bench        Run bench::mark benchmark script"
+	@echo "  make readme       Render README.md from README.Rmd"
+	@echo "  make bench-report Render benchmarks/benchmark.md from benchmarks/benchmark.Rmd"
+	@echo "  make report       Render README.md and benchmark report"
+	@echo "  make check        Run R CMD check for all packages"
+	@echo "  make clean        Remove build artifacts"
 
 deps:
-	Rscript -e 'install.packages(c("tinytest", "bench"))'
+	Rscript -e 'install.packages(c("tinytest", "bench", "rmarkdown", "knitr"))'
 
 install: $(PACKAGES:%=install-%)
 
@@ -27,6 +30,14 @@ test-%:
 
 bench: install
 	Rscript benchmarks/benchmark.R
+
+readme: install
+	Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE)'
+
+bench-report: install
+	Rscript -e 'rmarkdown::render("benchmarks/benchmark.Rmd", output_format = "github_document", output_file = "benchmark.md", quiet = TRUE)'
+
+report: readme bench-report
 
 build: $(PACKAGES:%=build-%)
 
