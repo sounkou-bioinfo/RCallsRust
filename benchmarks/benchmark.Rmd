@@ -30,7 +30,8 @@ the same two-pass algorithm: count matches, allocate output, then fill positions
 Quantiles are reported because these sub-millisecond scans can have visible
 scheduler/cache tails. Timing columns are reported in microseconds;
 `itr_per_second` is bench's aggregate throughput and is not simply
-`1e6 / median_us`.
+`1e6 / median_us`. The distribution plot uses a log10 microsecond scale so
+long-tail outliers do not flatten the main timing bands.
 
 ## Machine
 
@@ -71,7 +72,7 @@ knitr::kable(bench$results, digits = 6)
 ## Plot
 
 ```{r benchmark-plot, echo=FALSE, fig.width=11, fig.height=6}
-plot_rcallsrust_benchmark(bench$mark, type = "boxplot")
+plot_rcallsrust_benchmark(bench$mark, type = "boxplot", log_scale = TRUE)
 ```
 
 The CSV artifact is written to `r bench$output_csv`; the raw `bench::mark()`

@@ -146,7 +146,7 @@ get_rcallsrust_benchmark <- function(
   }
 }
 
-plot_rcallsrust_benchmark <- function(mark, type = "boxplot") {
+plot_rcallsrust_benchmark <- function(mark, type = "boxplot", log_scale = TRUE) {
   if (is.null(mark)) {
     return(NULL)
   }
@@ -171,8 +171,15 @@ plot_rcallsrust_benchmark <- function(mark, type = "boxplot") {
     plot + ggplot2::geom_boxplot(outlier.alpha = 0.35)
   )
 
+  if (isTRUE(log_scale)) {
+    plot <- plot + ggplot2::scale_y_log10()
+    y_label <- "microseconds per call (log10 scale)"
+  } else {
+    y_label <- "microseconds per call"
+  }
+
   plot +
-    ggplot2::labs(x = NULL, y = "microseconds per call", title = "R-to-native call timing distribution") +
+    ggplot2::labs(x = NULL, y = y_label, title = "R-to-native call timing distribution") +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1),
       legend.position = "none"
