@@ -5,6 +5,11 @@ param_int <- function(env, default) {
   if (nzchar(value)) as.integer(value) else as.integer(default)
 }
 
+benchmark_cpu_affinity <- function() {
+  value <- Sys.getenv("RCALLSRUST_BENCH_CPU", unset = "")
+  if (nzchar(value)) value else "not pinned"
+}
+
 check_benchmark_packages <- function(packages = benchmark_packages) {
   for (pkg in packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) stop("Package not installed: ", pkg)
@@ -29,6 +34,8 @@ read_rcallsrust_benchmark <- function(
   output_rds = benchmark_rds_path(output_csv)
 ) {
   results <- utils::read.csv(output_csv, stringsAsFactors = FALSE)
+  cpu_affinity <- if ("cpu_affinity" %in% names(results)) results$cpu_affinity[[1L]] else benchmark_cpu_affinity()
+  results$cpu_affinity <- NULL
   mark <- if (file.exists(output_rds)) readRDS(output_rds) else NULL
   count_row <- match("pure C count", results$binding)
   if (is.na(count_row)) count_row <- 1L
@@ -39,7 +46,8 @@ read_rcallsrust_benchmark <- function(
       input_bytes = results$input_bytes[[1L]],
       needle = 65L,
       expected_matches = results$result_size[[count_row]],
-      iterations = results$iterations[[1L]]
+      iterations = results$iterations[[1L]],
+      cpu_affinity = cpu_affinity
     ),
     output_csv = output_csv,
     output_rds = output_rds
@@ -57,44 +65,46 @@ run_rcallsrust_benchmark <- function(
   x <- input$x
   needle <- input$needle
 
-  result_sizes <- c(
-    "pure C count" = RCallsC::count_byte(x, needle),
-    "C .Call + Rust count" = RCallsRustC::count_byte(x, needle),
-    "extendr_ffi count" = RCallsRustExtendrFfi::count_byte(x, needle),
-    "extendr high-level count" = RCallsRustExtendr::count_byte(x, needle),
-    "savvy count" = RCallsRustSavvy::count_byte(x, needle),
-    "pure C data.frame" = nrow(RCallsC::find_byte(x, needle)),
-    "C .Call + Rust data.frame" = nrow(RCallsRustC::find_byte(x, needle)),
-    "extendr_ffi data.frame" = nrow(RCallsRustExtendrFfi::find_byte(x, needle)),
-    "extendr high-level data.frame" = nrow(RCallsRustExtendr::find_byte(x, needle)),
-    "savvy list + R data.frame" = nrow(RCallsRustSavvy::find_byte(x, needle))
+  benchmark_cases <- list(
+    "pure C count" = function() RCallsC::count_byte(x, needle),
+    "C .Call + Rust count" = function() RCallsRustC::count_byte(x, needle),
+    "extendr_ffi count" = function() RCallsRustExtendrFfi::count_byte(x, needle),
+    "extendr high-level count" = function() RCallsRustExtendr::count_byte(x, needle),
+    "savvy count" = function() RCallsRustSavvy::count_byte(x, needle),
+    "pure C data.frame" = function() RCallsC::find_byte(x, needle),
+    "C .Call + Rust data.frame" = function() RCallsRustC::find_byte(x, needle),
+    "extendr_ffi data.frame" = function() RCallsRustExtendrFfi::find_byte(x, needle),
+    "extendr high-level data.frame" = function() RCallsRustExtendr::find_byte(x, needle),
+    "savvy list + R data.frame" = function() RCallsRustSavvy::find_byte(x, needle)
   )
 
-  mark <- bench::mark(
-    "pure C count" = RCallsC::count_byte(x, needle),
-    "C .Call + Rust count" = RCallsRustC::count_byte(x, needle),
-    "extendr_ffi count" = RCallsRustExtendrFfi::count_byte(x, needle),
-    "extendr high-level count" = RCallsRustExtendr::count_byte(x, needle),
-    "savvy count" = RCallsRustSavvy::count_byte(x, needle),
-    "pure C data.frame" = RCallsC::find_byte(x, needle),
-    "C .Call + Rust data.frame" = RCallsRustC::find_byte(x, needle),
-    "extendr_ffi data.frame" = RCallsRustExtendrFfi::find_byte(x, needle),
-    "extendr high-level data.frame" = RCallsRustExtendr::find_byte(x, needle),
-    "savvy list + R data.frame" = RCallsRustSavvy::find_byte(x, needle),
-    iterations = iterations,
-    check = FALSE
-  )
+  result_size <- function(value) {
+    if (is.data.frame(value)) nrow(value) else as.numeric(value)
+  }
+  result_sizes <- vapply(benchmark_cases, function(fun) result_size(fun()), numeric(1))
+
+  marks <- lapply(names(benchmark_cases), function(label) {
+    fun <- benchmark_cases[[label]]
+    invisible(fun())
+    out <- bench::mark(fun(), iterations = iterations, check = FALSE)
+    out$binding <- label
+    out
+  })
+  mark <- do.call(rbind, marks)
+  row.names(mark) <- NULL
 
   times_us <- lapply(mark$time, function(x) as.numeric(x) * 1e6)
   time_quantile_us <- function(prob) {
     vapply(times_us, stats::quantile, numeric(1), probs = prob, names = FALSE)
   }
 
+  labels <- if ("binding" %in% names(mark)) mark$binding else as.character(mark$expression)
+
   results <- data.frame(
-    binding = as.character(mark$expression),
+    binding = labels,
     input_bytes = length(x),
     iterations = iterations,
-    result_size = as.numeric(result_sizes[as.character(mark$expression)]),
+    result_size = as.numeric(result_sizes[labels]),
     min_us = as.numeric(mark$min) * 1e6,
     p25_us = time_quantile_us(0.25),
     median_us = as.numeric(mark$median) * 1e6,
@@ -111,7 +121,9 @@ run_rcallsrust_benchmark <- function(
 
   if (!is.null(output_csv) && nzchar(output_csv)) {
     dir.create(dirname(output_csv), recursive = TRUE, showWarnings = FALSE)
-    utils::write.csv(results, output_csv, row.names = FALSE)
+    results_csv <- results
+    results_csv$cpu_affinity <- benchmark_cpu_affinity()
+    utils::write.csv(results_csv, output_csv, row.names = FALSE)
   }
   if (!is.null(output_rds) && nzchar(output_rds)) {
     dir.create(dirname(output_rds), recursive = TRUE, showWarnings = FALSE)
@@ -125,7 +137,8 @@ run_rcallsrust_benchmark <- function(
       input_bytes = length(x),
       needle = as.integer(needle),
       expected_matches = as.numeric(result_sizes[["pure C count"]]),
-      iterations = iterations
+      iterations = iterations,
+      cpu_affinity = benchmark_cpu_affinity()
     ),
     output_csv = output_csv,
     output_rds = output_rds
@@ -151,7 +164,7 @@ plot_rcallsrust_benchmark <- function(mark, type = "boxplot", log_scale = TRUE) 
     return(NULL)
   }
 
-  labels <- as.character(mark$expression)
+  labels <- if ("binding" %in% names(mark)) mark$binding else as.character(mark$expression)
   time_df <- do.call(rbind, lapply(seq_along(labels), function(i) {
     data.frame(
       binding = labels[[i]],

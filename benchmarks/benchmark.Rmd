@@ -28,10 +28,13 @@ and expose the same R API:
 The benchmark uses the R `bench` package. All `find_byte()` implementations use
 the same two-pass algorithm: count matches, allocate output, then fill positions.
 Quantiles are reported because these sub-millisecond scans can have visible
-scheduler/cache tails. Timing columns are reported in microseconds;
-`itr_per_second` is bench's aggregate throughput and is not simply
+scheduler/cache tails. Each case is measured in a separate `bench::mark()` run
+to reduce cross-case cache and allocation interference. Timing columns are
+reported in microseconds; `itr_per_second` is bench's aggregate throughput and is not simply
 `1e6 / median_us`. The distribution plot uses a log10 microsecond scale so
-long-tail outliers do not flatten the main timing bands.
+long-tail outliers do not flatten the main timing bands. On heterogeneous or
+frequency-scaled CPUs, unpinned runs can show core-migration tails; on Linux,
+set `RCALLSRUST_BENCH_CPU=<cpu>` to pin the benchmark with `taskset`.
 
 ## Machine
 

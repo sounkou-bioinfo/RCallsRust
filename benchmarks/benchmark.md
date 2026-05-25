@@ -20,11 +20,15 @@ vector and expose the same R API:
 The benchmark uses the R `bench` package. All `find_byte()`
 implementations use the same two-pass algorithm: count matches, allocate
 output, then fill positions. Quantiles are reported because these
-sub-millisecond scans can have visible scheduler/cache tails. Timing
-columns are reported in microseconds; `itr_per_second` is bench’s
-aggregate throughput and is not simply `1e6 / median_us`. The
-distribution plot uses a log10 microsecond scale so long-tail outliers
-do not flatten the main timing bands.
+sub-millisecond scans can have visible scheduler/cache tails. Each case
+is measured in a separate `bench::mark()` run to reduce cross-case cache
+and allocation interference. Timing columns are reported in
+microseconds; `itr_per_second` is bench’s aggregate throughput and is
+not simply `1e6 / median_us`. The distribution plot uses a log10
+microsecond scale so long-tail outliers do not flatten the main timing
+bands. On heterogeneous or frequency-scaled CPUs, unpinned runs can show
+core-migration tails; on Linux, set `RCALLSRUST_BENCH_CPU=<cpu>` to pin
+the benchmark with `taskset`.
 
 ## Machine
 
@@ -40,22 +44,22 @@ do not flatten the main timing bands.
 
 ## Results
 
-| input_bytes | needle | expected_matches | iterations |
-|------------:|-------:|-----------------:|-----------:|
-|       1e+06 |     65 |               10 |        500 |
+| input_bytes | needle | expected_matches | iterations | cpu_affinity |
+|------------:|-------:|-----------------:|-----------:|-------------:|
+|       1e+06 |     65 |               10 |        500 |            0 |
 
 | binding                       | input_bytes | iterations | result_size |   min_us |   p25_us | median_us |   p75_us |   p95_us |    max_us | itr_per_second | mem_alloc_bytes | gc_per_second |
 |:------------------------------|------------:|-----------:|------------:|---------:|---------:|----------:|---------:|---------:|----------:|---------------:|----------------:|--------------:|
-| savvy count                   |       1e+06 |        500 |          10 | 274.0360 | 274.7902 |  277.2285 | 277.8410 | 292.3605 |  320.3610 |       3597.251 |               0 |       0.00000 |
-| extendr_ffi count             |       1e+06 |        500 |          10 | 274.3209 | 276.8912 |  278.8425 | 289.1962 | 293.2529 |  303.4170 |       3544.514 |               0 |       0.00000 |
-| extendr high-level count      |       1e+06 |        500 |          10 | 270.2069 | 276.9167 |  279.7499 | 286.3247 | 295.5162 |  313.4590 |       3546.586 |               0 |       0.00000 |
-| C .Call + Rust count          |       1e+06 |        500 |          10 | 279.5591 | 288.6943 |  348.4925 | 361.5808 | 368.0456 |  439.6000 |       3037.350 |               0 |       0.00000 |
-| pure C count                  |       1e+06 |        500 |          10 | 221.2031 | 236.7363 |  388.2621 | 443.3598 | 666.4246 |  695.8020 |       2632.649 |               0 |       0.00000 |
-| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 430.6680 | 431.0012 |  432.5770 | 439.0988 | 448.2542 |  471.7840 |       2295.732 |               0 |       0.00000 |
-| pure C data.frame             |       1e+06 |        500 |          10 | 434.9441 | 437.9911 |  461.2416 | 631.6440 | 647.3065 |  691.5161 |       1951.640 |               0 |       0.00000 |
-| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.0450 | 480.0525 |  481.7810 | 484.1247 | 493.4375 |  521.4739 |       2069.295 |               0 |       0.00000 |
-| savvy list + R data.frame     |       1e+06 |        500 |          10 | 481.5630 | 484.0010 |  485.6825 | 488.8707 | 496.8615 |  514.2461 |       2052.321 |               0 |       0.00000 |
-| extendr high-level data.frame |       1e+06 |        500 |          10 | 534.7910 | 539.8541 |  544.5181 | 553.6925 | 575.5297 | 2905.7070 |       1822.088 |               0 |      10.99852 |
+| pure C count                  |       1e+06 |        500 |          10 | 216.4610 | 218.8683 |  231.5645 | 419.0668 | 429.5990 |  449.4131 |       3422.080 |               0 |      0.000000 |
+| savvy count                   |       1e+06 |        500 |          10 | 268.6331 | 269.3455 |  271.8525 | 274.0244 | 277.5776 |  288.2330 |       3673.828 |               0 |      0.000000 |
+| extendr high-level count      |       1e+06 |        500 |          10 | 268.8779 | 273.9317 |  277.8005 | 338.5370 | 342.2083 |  383.2100 |       3358.517 |               0 |      0.000000 |
+| C .Call + Rust count          |       1e+06 |        500 |          10 | 273.6660 | 274.1060 |  280.4721 | 348.6926 | 365.1795 |  401.4010 |       3287.509 |               0 |      0.000000 |
+| extendr_ffi count             |       1e+06 |        500 |          10 | 269.7689 | 277.7879 |  321.1505 | 338.4415 | 341.2959 | 4332.8489 |       3007.240 |               0 |      0.000000 |
+| pure C data.frame             |       1e+06 |        500 |          10 | 426.2611 | 435.0110 |  442.3365 | 571.3510 | 643.1047 |  665.1041 |       2011.792 |               0 |      0.000000 |
+| C .Call + Rust data.frame     |       1e+06 |        500 |          10 | 431.1120 | 441.0743 |  443.5341 | 460.3973 | 471.0585 |  494.1100 |       2227.373 |               0 |      0.000000 |
+| extendr_ffi data.frame        |       1e+06 |        500 |          10 | 478.5500 | 480.9421 |  482.6536 | 486.0712 | 494.2625 |  521.5349 |       2064.436 |               0 |      0.000000 |
+| savvy list + R data.frame     |       1e+06 |        500 |          10 | 481.7031 | 483.9698 |  485.3721 | 490.0148 | 499.9955 |  527.2730 |       2049.611 |               0 |      0.000000 |
+| extendr high-level data.frame |       1e+06 |        500 |          10 | 536.1299 | 540.6938 |  547.1780 | 556.9335 | 584.3325 | 2182.7739 |       1810.507 |               0 |      7.271114 |
 
 ## Plot
 
