@@ -85,9 +85,9 @@ run_rcallsrust_benchmark <- function(
     check = FALSE
   )
 
-  times <- lapply(mark$time, as.numeric)
-  time_quantile <- function(prob) {
-    vapply(times, stats::quantile, numeric(1), probs = prob, names = FALSE)
+  times_us <- lapply(mark$time, function(x) as.numeric(x) * 1e6)
+  time_quantile_us <- function(prob) {
+    vapply(times_us, stats::quantile, numeric(1), probs = prob, names = FALSE)
   }
 
   results <- data.frame(
@@ -95,18 +95,18 @@ run_rcallsrust_benchmark <- function(
     input_bytes = length(x),
     iterations = iterations,
     result_size = as.numeric(result_sizes[as.character(mark$expression)]),
-    min_seconds = as.numeric(mark$min),
-    p25_seconds = time_quantile(0.25),
-    median_seconds = as.numeric(mark$median),
-    p75_seconds = time_quantile(0.75),
-    p95_seconds = time_quantile(0.95),
-    max_seconds = vapply(times, max, numeric(1)),
+    min_us = as.numeric(mark$min) * 1e6,
+    p25_us = time_quantile_us(0.25),
+    median_us = as.numeric(mark$median) * 1e6,
+    p75_us = time_quantile_us(0.75),
+    p95_us = time_quantile_us(0.95),
+    max_us = vapply(times_us, max, numeric(1)),
     itr_per_second = mark$`itr/sec`,
     mem_alloc_bytes = as.numeric(mark$mem_alloc),
     gc_per_second = mark$`gc/sec`,
     stringsAsFactors = FALSE
   )
-  results <- results[order(results$median_seconds), ]
+  results <- results[order(results$median_us), ]
   row.names(results) <- NULL
 
   if (!is.null(output_csv) && nzchar(output_csv)) {
@@ -150,7 +150,31 @@ plot_rcallsrust_benchmark <- function(mark, type = "boxplot") {
   if (is.null(mark)) {
     return(NULL)
   }
-  get("autoplot.bench_mark", asNamespace("bench"))(mark, type = type) +
-    ggplot2::coord_flip() +
-    ggplot2::labs(x = NULL, y = "time per call", title = "R-to-native call timing distribution")
+
+  labels <- as.character(mark$expression)
+  time_df <- do.call(rbind, lapply(seq_along(labels), function(i) {
+    data.frame(
+      binding = labels[[i]],
+      microseconds = as.numeric(mark$time[[i]]) * 1e6,
+      stringsAsFactors = FALSE
+    )
+  }))
+  levels <- names(sort(tapply(time_df$microseconds, time_df$binding, stats::median)))
+  time_df$binding <- factor(time_df$binding, levels = levels)
+
+  plot <- ggplot2::ggplot(time_df, ggplot2::aes(x = binding, y = microseconds, fill = binding))
+  plot <- switch(
+    type,
+    jitter = plot + ggplot2::geom_jitter(width = 0.15, height = 0, alpha = 0.25, size = 0.7),
+    violin = plot + ggplot2::geom_violin(fill = "grey85", colour = "grey30"),
+    boxplot = plot + ggplot2::geom_boxplot(outlier.alpha = 0.35),
+    plot + ggplot2::geom_boxplot(outlier.alpha = 0.35)
+  )
+
+  plot +
+    ggplot2::labs(x = NULL, y = "microseconds per call", title = "R-to-native call timing distribution") +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1),
+      legend.position = "none"
+    )
 }
