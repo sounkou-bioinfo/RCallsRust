@@ -74,13 +74,22 @@ run_rcallsrust_benchmark <- function(
     check = FALSE
   )
 
+  times <- lapply(mark$time, as.numeric)
+  time_quantile <- function(prob) {
+    vapply(times, stats::quantile, numeric(1), probs = prob, names = FALSE)
+  }
+
   results <- data.frame(
     binding = as.character(mark$expression),
     input_bytes = length(x),
     iterations = iterations,
     result_size = as.numeric(result_sizes[as.character(mark$expression)]),
     min_seconds = as.numeric(mark$min),
+    p25_seconds = time_quantile(0.25),
     median_seconds = as.numeric(mark$median),
+    p75_seconds = time_quantile(0.75),
+    p95_seconds = time_quantile(0.95),
+    max_seconds = vapply(times, max, numeric(1)),
     itr_per_second = mark$`itr/sec`,
     mem_alloc_bytes = as.numeric(mark$mem_alloc),
     gc_per_second = mark$`gc/sec`,

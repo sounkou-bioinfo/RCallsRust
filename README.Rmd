@@ -65,7 +65,10 @@ make check     # run R CMD check for all packages
 ## Benchmark results
 
 The benchmark uses the R `bench` package, a deterministic 1 MB raw vector by
-default, and reports both scalar count and small-data-frame return timings.
+default, and reports both scalar count and small-data-frame return timings. The
+quantiles are included because these sub-millisecond scans can have visible
+scheduler/cache tails; `itr_per_second` is bench's aggregate throughput and is
+not simply `1 / median_seconds`.
 
 ```{r benchmark, echo=FALSE}
 bench_iterations <- param_int("RCALLSRUST_BENCH_ITERS", params$iterations)

@@ -27,6 +27,9 @@ and expose the same R API:
 
 The benchmark uses the R `bench` package. All `find_byte()` implementations use
 the same two-pass algorithm: count matches, allocate output, then fill positions.
+Quantiles are reported because these sub-millisecond scans can have visible
+scheduler/cache tails; `itr_per_second` is bench's aggregate throughput and is
+not simply `1 / median_seconds`.
 
 ## Machine
 
